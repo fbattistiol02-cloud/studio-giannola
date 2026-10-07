@@ -17,7 +17,7 @@ const { render } = await import(
 // Precarica i due font usati sopra la piega: titolo (Fraunces) e testo (Plex 400).
 const assets = fs.readdirSync(path.join(dist, "assets"));
 const preload = [
-  /^fraunces-latin-full-normal-.*\.woff2$/,
+  /^fraunces-latin-opsz-normal-.*\.woff2$/,
   /^ibm-plex-sans-latin-400-normal-.*\.woff2$/,
 ]
   .map((re) => assets.find((f) => re.test(f)))
@@ -25,7 +25,11 @@ const preload = [
   .map((f) => `<link rel="preload" href="/assets/${f}" as="font" type="font/woff2" crossorigin />`)
   .join("\n    ");
 
+// CSS in linea: niente richiesta bloccante prima del primo disegno.
+const cssFile = assets.find((f) => /^index-.*\.css$/.test(f));
+const css = fs.readFileSync(path.join(dist, "assets", cssFile), "utf8");
 const html = template
+  .replace(new RegExp(`<link rel="stylesheet"[^>]*${cssFile}"[^>]*>`), `<style>${css}</style>`)
   .replace("<!--app-head-->", preload)
   .replace("<!--app-html-->", render());
 fs.writeFileSync(file, html);

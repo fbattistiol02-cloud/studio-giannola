@@ -5,6 +5,16 @@
    senza JS o con "riduci movimento" tutto è visibile e nello stato finale.
    ========================================================================== */
 
+/* Fraunces corsivo con tutti gli assi (SOFT, WONK per "Santa Lucia."),
+   ridotto ai soli caratteri latini e italiani: 92 KB invece di 150 KB. */
+@font-face {
+  font-family: "Fraunces Variable";
+  font-style: italic;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url("./assets/fonts/fraunces-italic-sub.woff2") format("woff2-variations");
+}
+
 :root {
   /* palette di partenza */
   --porcelain: #f9f8f5;
