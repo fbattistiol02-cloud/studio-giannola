@@ -40,3 +40,49 @@ export function letterWrite(letter: HTMLElement): () => void {
     split.revert();
   };
 }
+
+/**
+ * Le icone delle cure si disegnano quando entrano nello schermo (stagger tra le card
+ * visibili insieme), poi 4 icone fanno un piccolo gesto, una volta sola.
+ */
+export function curesDraw(section: HTMLElement): () => void {
+  if (!motionAllowed()) return () => undefined;
+  const icons = [...section.querySelectorAll<SVGSVGElement>(".cure-icon")];
+  gsap.set(icons.flatMap((i) => [...i.querySelectorAll("path")]), { drawSVG: "0%" });
+  const gesture = (icon: SVGSVGElement) => {
+    const part = (name: string) => icon.querySelector(`[data-part="${name}"]`);
+    switch (icon.dataset.icon) {
+      case "otturazioni":
+        return gsap.from(part("fill"), { scaleY: 0, transformOrigin: "50% 100%", duration: 0.5, ease: "back.out(1.6)" });
+      case "impianti":
+        return gsap.from(part("screw"), { y: -6, duration: 0.6, ease: "back.out(1.6)" });
+      case "igiene":
+        return gsap.from(part("sparkle"), { x: -4, opacity: 0, duration: 0.5, ease: "expo.out" });
+      case "bambini":
+        return gsap.fromTo(part("smile"), { drawSVG: "0%" }, { drawSVG: "100%", duration: 0.5, ease: "power2.out" });
+      default:
+        return null;
+    }
+  };
+  const io = new IntersectionObserver(
+    (entries) => {
+      entries
+        .filter((e) => e.isIntersecting)
+        .forEach((e, i) => {
+          const icon = e.target as SVGSVGElement;
+          io.unobserve(icon);
+          const smile = icon.querySelector('[data-part="smile"]');
+          const paths = [...icon.querySelectorAll("path")].filter((p) => p !== smile);
+          gsap
+            .timeline({ delay: i * 0.08 })
+            .to(paths, { drawSVG: "100%", duration: 1.2, ease: "power2.inOut" })
+            .add(() => {
+              gesture(icon);
+            }, 0.9);
+        });
+    },
+    { threshold: 0.6 },
+  );
+  icons.forEach((icon) => io.observe(icon));
+  return () => io.disconnect();
+}

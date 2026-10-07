@@ -495,6 +495,43 @@ const CHECKS = {
     await context.close();
     return problems;
   },
+  async "cures-draw"(browser) {
+    const problems = [];
+    const { context, page, errors } = await open(browser, { width: 1440, reducedMotion: "no-preference" });
+    await page.goto(BASE, { waitUntil: "networkidle" });
+    await sleep(2200);
+    const fractions = () =>
+      page.$$eval(".cure-icon path", (ps) =>
+        ps.map((p) => {
+          const d = getComputedStyle(p).strokeDasharray;
+          if (!d || d === "none") return 1;
+          const [a, b] = d.split(/[ ,]+/).map(parseFloat);
+          return b > 0.5 ? a / (a + b) : 1;
+        }),
+      );
+    const before = await fractions();
+    if (before.every((f) => f >= 0.99)) problems.push("prima di arrivare alle cure le icone sono già disegnate");
+    await page.evaluate(() => document.querySelector('[data-qa="cures"]').scrollIntoView());
+    await sleep(800);
+    await page.evaluate(() => window.scrollBy(0, 500));
+    await sleep(2200);
+    const after = await fractions();
+    const undrawn = after.filter((f) => f < 0.99).length;
+    if (undrawn) problems.push(`${undrawn} tratti delle icone non disegnati`);
+    if (errors.length) problems.push(`errori in console: ${errors.join(" | ")}`);
+    await context.close();
+    return problems;
+  },
+
+  async "cures-static"(browser) {
+    const problems = [];
+    const { context, page } = await open(browser, { width: 1440, reducedMotion: "reduce" });
+    await page.goto(BASE, { waitUntil: "networkidle" });
+    const dashed = await page.$$eval(".cure-icon path", (ps) => ps.filter((p) => !["none", ""].includes(getComputedStyle(p).strokeDasharray)).length);
+    if (dashed) problems.push(`movimento ridotto: ${dashed} tratti delle icone non disegnati`);
+    await context.close();
+    return problems;
+  },
 };
 
 // ---- esecuzione --------------------------------------------------------------
