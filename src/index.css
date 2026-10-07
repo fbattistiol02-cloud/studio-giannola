@@ -1081,3 +1081,14 @@ html.intro .door-leaf {
 .section.fear {
   padding-block: calc(var(--section-space) * 0.5);
 }
+
+/* ---- reveal: stato iniziale solo con il movimento permesso -------------- */
+html.motion [data-reveal]:not(.is-in) {
+  opacity: 0;
+  transform: translateY(18px);
+}
+html.motion [data-reveal] {
+  transition:
+    opacity 0.6s var(--ease-out) var(--delay, 0ms),
+    transform 0.6s var(--ease-out) var(--delay, 0ms);
+}

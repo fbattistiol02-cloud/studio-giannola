@@ -3,6 +3,23 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script>
+      // Classi del movimento prima del primo disegno (niente lampi):
+      // js = JavaScript attivo, motion = movimento permesso, intro = prima visita.
+      // Rete di sicurezza: se il JS non parte entro 3 s, tutto torna visibile.
+      (function () {
+        var d = document.documentElement;
+        d.classList.add("js");
+        var rm = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches, seen = false;
+        try { seen = localStorage.getItem("sg-intro-v1") === "1"; } catch (e) {}
+        if (!rm) d.classList.add("motion");
+        if (!rm && !seen) d.classList.add("intro");
+        setTimeout(function () {
+          d.classList.remove("intro");
+          if (!window.__sgMotion) d.classList.remove("motion");
+        }, 3000);
+      })();
+    </script>
     <title>Studio Dentistico Giannola · Dentista a Santa Lucia, Verona</title>
     <meta name="description" content="Studio dentistico a Santa Lucia, Verona: famiglie seguite da più di vent'anni. Salita Santa Lucia 2, telefono 045 567924." />
     <meta name="robots" content="noindex, nofollow" />

@@ -127,6 +127,64 @@ const CHECKS = {
     await context.close();
     return problems;
   },
+  async "motion-classes"(browser) {
+    const problems = [];
+    const classes = (page) => page.evaluate(() => document.documentElement.className);
+    {
+      const { context, page } = await open(browser, { reducedMotion: "reduce" });
+      await page.goto(BASE, { waitUntil: "domcontentloaded" });
+      const c = await classes(page);
+      if (/\bmotion\b|\bintro\b/.test(c)) problems.push(`movimento ridotto: classi "${c}"`);
+      await context.close();
+    }
+    {
+      const { context, page } = await open(browser, { reducedMotion: "no-preference" });
+      await page.goto(BASE, { waitUntil: "domcontentloaded" });
+      const c1 = await classes(page);
+      if (!/\bmotion\b/.test(c1) || !/\bintro\b/.test(c1)) problems.push(`prima visita: classi "${c1}" (attese motion + intro)`);
+      // la seconda visita senza intro la verifica `intro-once` (Task 4: è l'apertura a segnarsi come vista)
+      await context.close();
+    }
+    return problems;
+  },
+
+  async "reveals-settle"(browser) {
+    const problems = [];
+    const { context, page, errors } = await open(browser, { reducedMotion: "no-preference" });
+    await page.goto(BASE, { waitUntil: "networkidle" });
+    await scrollThrough(page);
+    await sleep(1500);
+    const hidden = await page.$$eval("[data-reveal]", (els) =>
+      els.filter((el) => Number(getComputedStyle(el).opacity) < 0.99).map((el) => el.className || el.tagName),
+    );
+    if (hidden.length) problems.push(`${hidden.length} blocchi [data-reveal] ancora nascosti: ${hidden.slice(0, 4).join(", ")}`);
+    const hasMotion = await page.evaluate(() => document.documentElement.classList.contains("motion"));
+    if (!hasMotion) problems.push("manca la classe motion: i reveal non sono stati provati");
+    if (errors.length) problems.push(`errori in console: ${errors.join(" | ")}`);
+    await context.close();
+    return problems;
+  },
+
+  async "storage-blocked"(browser) {
+    const problems = [];
+    const { context, page, errors } = await open(browser, {
+      reducedMotion: "no-preference",
+      init: () => {
+        Storage.prototype.getItem = () => {
+          throw new DOMException("bloccato", "SecurityError");
+        };
+        Storage.prototype.setItem = () => {
+          throw new DOMException("bloccato", "SecurityError");
+        };
+      },
+    });
+    await page.goto(BASE, { waitUntil: "networkidle" });
+    await sleep(2500);
+    if (errors.length) problems.push(`errori in console: ${errors.join(" | ")}`);
+    if (!(await isVisible(page, "h1"))) problems.push("h1 non visibile con lo storage bloccato");
+    await context.close();
+    return problems;
+  },
 };
 
 // ---- esecuzione --------------------------------------------------------------
