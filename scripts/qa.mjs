@@ -393,6 +393,71 @@ const CHECKS = {
     await context.close();
     return problems;
   },
+  async "small-moves"(browser) {
+    const problems = [];
+    // 1) stato "Aperto ora": orologio fissato a mer 7/10/2026 10:00 (Roma), a 1440px
+    //    (sul telefono lo stato non c'è nell'intestazione: non ci sta)
+    {
+      const { context, page } = await open(browser, { width: 1440, reducedMotion: "no-preference" });
+      await page.clock.setFixedTime(new Date("2026-10-07T08:00:00Z"));
+      await page.goto(BASE, { waitUntil: "networkidle" });
+      const status = await page.textContent('[data-qa="status"]');
+      if (!/Aperto ora/.test(status)) problems.push(`stato: "${status?.trim()}" invece di "Aperto ora"`);
+      await sleep(1000);
+      const running = () => page.$eval('[data-qa="status"]', (el) => el.getAnimations({ subtree: true }).filter((a) => a.playState === "running").length);
+      if (!(await running())) problems.push('a 1 s il pallino "Aperto ora" non pulsa');
+      await sleep(5000);
+      if (await running()) problems.push("dopo 6 s il pallino pulsa ancora");
+      await context.close();
+    }
+    // 2) il resto con l'orologio vero (GSAP misura il tempo con Date.now)
+    const { context, page, errors } = await open(browser, { reducedMotion: "no-preference" });
+    await page.goto(BASE, { waitUntil: "networkidle" });
+    const pre = await page.evaluate(() => ({
+      value: document.querySelector('[data-qa="rating-value"]').textContent.trim(),
+      pin: Number(getComputedStyle(document.querySelector('[data-qa="map-pin"]')).opacity),
+    }));
+    if (pre.value === "4,4") problems.push("prima di arrivare alle recensioni il voto è già 4,4 (non conta)");
+    if (pre.pin > 0.01) problems.push("prima di arrivare alla mappa il segnaposto è già visibile (non cade)");
+    await page.evaluate(() => window.scrollTo(0, 200));
+    await sleep(600);
+    if (!(await page.$eval('[data-qa="header"]', (el) => el.classList.contains("is-pill")))) problems.push("scorrendo oltre 80px l'intestazione non diventa pillola");
+    await page.evaluate(() => document.querySelector('[data-qa="reviews"]').scrollIntoView());
+    await sleep(1500);
+    const value = (await page.textContent('[data-qa="rating-value"]'))?.trim();
+    if (value !== "4,4") problems.push(`voto mostrato "${value}" invece di "4,4"`);
+    await page.evaluate(() => document.querySelector('[data-qa="map"]').scrollIntoView({ block: "center" }));
+    await sleep(2500);
+    const f = await page.$eval('[data-qa="map-pin"]', (el) => el.transform.baseVal.consolidate()?.matrix.f ?? 0);
+    if (Math.abs(f - 228) > 0.5) problems.push(`segnaposto non a posto (y = ${f.toFixed(1)}, atteso 228)`);
+    if (errors.length) problems.push(`errori in console: ${errors.join(" | ")}`);
+    await context.close();
+    return problems;
+  },
+
+  async "small-static"(browser) {
+    const problems = [];
+    const { context, page } = await open(browser, { reducedMotion: "reduce" });
+    await page.goto(BASE, { waitUntil: "networkidle" });
+    const r = await page.evaluate(() => {
+      const fill = document.querySelector('[data-qa="stars-fill"]');
+      const pin = document.querySelector('[data-qa="map-pin"]');
+      return {
+        value: document.querySelector('[data-qa="rating-value"]').textContent.trim(),
+        width: fill.getBoundingClientRect().width / fill.parentElement.getBoundingClientRect().width,
+        clip: getComputedStyle(fill).clipPath,
+        pinY: pin.transform.baseVal.consolidate()?.matrix.f ?? 0,
+        pinOpacity: Number(getComputedStyle(pin).opacity),
+        anims: document.getAnimations().filter((a) => a.playState === "running").length,
+      };
+    });
+    if (r.value !== "4,4") problems.push(`voto "${r.value}"`);
+    if (Math.abs(r.width - 0.88) > 0.01 || (r.clip && r.clip !== "none")) problems.push(`stelle: larghezza ${r.width.toFixed(2)}, clip ${r.clip}`);
+    if (Math.abs(r.pinY - 228) > 0.5 || r.pinOpacity < 0.99) problems.push(`segnaposto y=${r.pinY} opacità ${r.pinOpacity}`);
+    if (r.anims) problems.push(`${r.anims} animazioni attive con movimento ridotto`);
+    await context.close();
+    return problems;
+  },
 };
 
 // ---- esecuzione --------------------------------------------------------------

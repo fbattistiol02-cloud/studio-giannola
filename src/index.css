@@ -273,13 +273,26 @@ ol {
   z-index: 50;
   padding-block: 0.75rem;
 }
+.site-header .header-inner {
+  padding-inline: calc(var(--gutter) + 0.5rem);
+}
 .site-header::before {
   content: "";
   position: absolute;
-  inset: 0;
+  inset: 0.35rem calc(var(--gutter) / 2);
   z-index: -1;
-  background: rgb(249 248 245 / 0.94);
-  border-bottom: 1px solid var(--line);
+  background: rgb(249 248 245 / 0.92);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  box-shadow: var(--shadow);
+  opacity: 0;
+  transform: translateY(-4px);
+}
+.site-header.is-pill::before {
+  opacity: 1;
+  transform: none;
+}
+html.motion .site-header::before {
   transition:
     opacity 0.45s var(--ease-out),
     transform 0.45s var(--ease-out);
@@ -1136,4 +1149,36 @@ html.motion .breath-pause {
 html.motion .step:not(.is-shown) {
   opacity: 0;
   transform: translateY(12px);
+}
+
+/* ---- piccoli movimenti -------------------------------------------------- */
+@keyframes status-pulse {
+  from {
+    transform: scale(1);
+    opacity: 0.5;
+  }
+  to {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+}
+html.motion .status.is-open .status-dot::after {
+  animation: status-pulse 1.5s var(--ease-out) 3;
+}
+html.motion .stars-fill:not(.is-done) {
+  clip-path: inset(0 100% 0 0);
+}
+html.motion .quote mark {
+  background-size: 0% 70%;
+  transition: background-size 0.8s var(--ease-out) 0.2s;
+}
+html.motion .quote.is-lit mark {
+  background-size: 100% 70%;
+}
+html.motion .map-arena,
+html.motion .map-pin {
+  opacity: 0;
+}
+html.motion .map-river {
+  stroke-dasharray: 0 100000;
 }

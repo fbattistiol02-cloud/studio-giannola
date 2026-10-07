@@ -62,6 +62,8 @@ export function VeronaMap() {
       {/* lo studio */}
       <g className="map-pin" data-qa="map-pin" transform={`translate(${PIN.x} ${PIN.y})`}>
         <circle className="map-pin-wave" r="10" fill="none" stroke="var(--verona)" strokeWidth="1.5" opacity="0" />
+        {/* gruppo interno: è lui che cade (il transform esterno resta la posizione) */}
+        <g className="map-pin-drop">
         <circle r="9" fill="var(--verona)" />
         <circle r="3.2" fill="var(--white)" />
         <text x="16" y="5" fontSize="14" fill="var(--ink)" fontWeight="600">
@@ -70,6 +72,7 @@ export function VeronaMap() {
         <text x="16" y="21" fontSize="11.5" fill="var(--muted)">
           Studio Giannola
         </text>
+        </g>
       </g>
     </svg>
   );
