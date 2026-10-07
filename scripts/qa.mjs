@@ -335,6 +335,64 @@ const CHECKS = {
     await context.close();
     return problems;
   },
+  async breath(browser) {
+    const problems = [];
+    const { context, page, errors } = await open(browser, { reducedMotion: "no-preference" });
+    await page.goto(BASE, { waitUntil: "networkidle" });
+    await sleep(2200);
+    await page.evaluate(() => document.querySelector('[data-qa="breath"]').scrollIntoView({ block: "center" }));
+    const scale = () => page.$eval('[data-qa="breath"] .breath-core', (el) => new DOMMatrix(getComputedStyle(el).transform).a);
+    const shownSteps = () => page.$$eval('[data-qa="fear-step"]', (els) => els.filter((e) => Number(getComputedStyle(e).opacity) > 0.99).length);
+    await sleep(300);
+    const s0 = await scale();
+    await sleep(1000);
+    const s1 = await scale();
+    if (Math.abs(s1 - s0) < 0.01) problems.push(`il cerchio non respira (scala ${s0.toFixed(3)} → ${s1.toFixed(3)})`);
+    await sleep(9700);
+    const n = await shownSteps();
+    if (n < 2) problems.push(`dopo 11 s solo ${n} passi visibili (attesi ≥ 2)`);
+    await page.click('[data-qa="breath-pause"]');
+    await sleep(1000);
+    const p1 = await scale();
+    await sleep(1000);
+    const p2 = await scale();
+    if (Math.abs(p2 - p1) > 0.002) problems.push("con Pausa il cerchio continua a muoversi");
+    const pressed = await page.getAttribute('[data-qa="breath-pause"]', "aria-pressed");
+    if (pressed !== "true") problems.push(`aria-pressed = ${pressed} dopo Pausa`);
+    // in pausa: uscire e rientrare non deve farlo ripartire
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await sleep(600);
+    await page.evaluate(() => document.querySelector('[data-qa="breath"]').scrollIntoView({ block: "center" }));
+    await sleep(600);
+    const q1 = await scale();
+    await sleep(800);
+    if (Math.abs((await scale()) - q1) > 0.002) problems.push("in pausa, rientrando nella sezione il cerchio riparte");
+    // Riprendi, poi fuori schermo si ferma e al rientro riprende
+    await page.click('[data-qa="breath-pause"]');
+    await sleep(800);
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await sleep(800);
+    await page.evaluate(() => document.querySelector('[data-qa="breath"]').scrollIntoView({ block: "center" }));
+    await sleep(300);
+    const r1 = await scale();
+    await sleep(900);
+    if (Math.abs((await scale()) - r1) < 0.005) problems.push("dopo Riprendi il cerchio non riparte al rientro");
+    if (errors.length) problems.push(`errori in console: ${errors.join(" | ")}`);
+    await context.close();
+    return problems;
+  },
+
+  async "breath-static"(browser) {
+    const problems = [];
+    const { context, page } = await open(browser, { reducedMotion: "reduce" });
+    await page.goto(BASE, { waitUntil: "networkidle" });
+    const n = await page.$$eval('[data-qa="fear-step"]', (els) => els.filter((e) => Number(getComputedStyle(e).opacity) > 0.99).length);
+    if (n !== 3) problems.push(`movimento ridotto: ${n} passi visibili invece di 3`);
+    const pauseVisible = await page.$eval('[data-qa="breath-pause"]', (el) => getComputedStyle(el).display !== "none").catch(() => false);
+    if (pauseVisible) problems.push("movimento ridotto: il pulsante Pausa è visibile");
+    await context.close();
+    return problems;
+  },
 };
 
 // ---- esecuzione --------------------------------------------------------------

@@ -1125,3 +1125,15 @@ html.intro .hero-points li {
 html.motion [data-vein] {
   stroke-dasharray: 0 100000;
 }
+
+/* ---- respiro: pulsante e passi solo con il movimento --------------------- */
+.breath-pause {
+  display: none;
+}
+html.motion .breath-pause {
+  display: inline-flex;
+}
+html.motion .step:not(.is-shown) {
+  opacity: 0;
+  transform: translateY(12px);
+}
