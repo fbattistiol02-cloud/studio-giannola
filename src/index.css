@@ -1120,3 +1120,8 @@ html.intro .hero-points li {
   height: 100%;
   transform-origin: 50% 40%;
 }
+
+/* ---- vena: con il movimento parte non disegnata (la disegna lo scorrimento) */
+html.motion [data-vein] {
+  stroke-dasharray: 0 100000;
+}

@@ -9,12 +9,15 @@ import { Visit } from "./components/Visit";
 import { Footer } from "./components/Footer";
 import { initMotion } from "./lib/gsap";
 import { revealBlocks } from "./motion/small";
+import { drawVein } from "./motion/vein";
 
 export default function App() {
   useEffect(() => {
     const motion = initMotion();
     const stopReveal = revealBlocks(document.body);
+    const stopVein = drawVein([...document.querySelectorAll<SVGPathElement>("[data-vein]")]);
     return () => {
+      stopVein();
       stopReveal();
       motion.destroy();
     };

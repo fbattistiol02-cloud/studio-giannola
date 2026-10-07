@@ -54,6 +54,22 @@ const isVisible = (page, sel) =>
     return s.visibility !== "hidden" && Number(s.opacity) > 0.99 && r.width > 0 && r.height > 0;
   });
 
+
+/** Quanto è disegnato ogni segmento della vena (0–1), letto da stroke-dasharray. */
+function drawnFractions() {
+  const out = {};
+  for (const p of document.querySelectorAll("[data-vein]")) {
+    const len = p.getTotalLength();
+    const dash = getComputedStyle(p).strokeDasharray;
+    if (!dash || dash === "none") { out[p.dataset.vein] = 1; continue; }
+    const [first] = dash.split(/[ ,]+/).map(parseFloat);
+    // con vector-effect non-scaling-stroke DrawSVG misura in pixel di schermo
+    const total = getComputedStyle(p).vectorEffect === "non-scaling-stroke" ? Math.max(len, first) : len;
+    out[p.dataset.vein] = Math.min(1, first / total);
+  }
+  return out;
+}
+
 const CHECKS = {
   async layout(browser) {
     const problems = [];
@@ -288,6 +304,34 @@ const CHECKS = {
     await sleep(3000);
     const cls = await page.evaluate(() => window.__cls);
     if (cls > 0) problems.push(`CLS = ${cls.toFixed(4)} (atteso 0)`);
+    await context.close();
+    return problems;
+  },
+  async "vein-draw"(browser) {
+    const problems = [];
+    const { context, page, errors } = await open(browser, { width: 1440, reducedMotion: "no-preference" });
+    await page.goto(BASE, { waitUntil: "networkidle" });
+    await sleep(2200);
+    const before = await page.evaluate(drawnFractions);
+    if (!(before.a < 0.05)) problems.push(`all'inizio il segmento A è già disegnato (${before.a.toFixed(2)})`);
+    await scrollThrough(page, 500, 200);
+    await page.evaluate(() => document.querySelector('[data-qa="visit"]').scrollIntoView());
+    await sleep(1000);
+    const after = await page.evaluate(drawnFractions);
+    for (const [k, v] of Object.entries(after)) if (v < 0.98) problems.push(`segmento ${k} disegnato al ${(v * 100).toFixed(0)}%`);
+    const reached = await page.$eval('[data-qa="map-pin"]', (el) => el.classList.contains("is-reached"));
+    if (!reached) problems.push("il segnaposto non ha la classe is-reached");
+    if (errors.length) problems.push(`errori in console: ${errors.join(" | ")}`);
+    await context.close();
+    return problems;
+  },
+
+  async "vein-static"(browser) {
+    const problems = [];
+    const { context, page } = await open(browser, { width: 1440, reducedMotion: "reduce" });
+    await page.goto(BASE, { waitUntil: "networkidle" });
+    const f = await page.evaluate(drawnFractions);
+    for (const [k, v] of Object.entries(f)) if (v < 0.98) problems.push(`movimento ridotto: segmento ${k} al ${(v * 100).toFixed(0)}%`);
     await context.close();
     return problems;
   },
