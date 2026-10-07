@@ -11,6 +11,7 @@ import { initMotion } from "./lib/gsap";
 import { CLINIC } from "./data/site";
 import { countRating, headerPill, highlightQuotes, mapEntrance, revealBlocks } from "./motion/small";
 import { drawVein } from "./motion/vein";
+import { letterWrite } from "./motion/extras";
 
 export default function App() {
   useEffect(() => {
@@ -23,6 +24,7 @@ export default function App() {
       countRating(q<HTMLElement>('[data-qa="rating-value"]'), CLINIC.google.rating),
       highlightQuotes(q<HTMLElement>('[data-qa="reviews"]')),
       mapEntrance(q<SVGSVGElement>('[data-qa="map"]')),
+      letterWrite(q<HTMLElement>('[data-qa="letter"]')),
     ];
     return () => {
       stops.forEach((s) => s());

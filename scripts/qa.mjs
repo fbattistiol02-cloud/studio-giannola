@@ -70,6 +70,12 @@ function drawnFractions() {
   return out;
 }
 
+/** Un dasharray "a b": disegnato del tutto quando a ≥ a + b (cioè b ≈ 0) o assente. */
+function p0len(dash) {
+  const [a, b] = dash.split(/[ ,]+/).map(parseFloat);
+  return b > 1 ? a + b : 0;
+}
+
 const CHECKS = {
   async layout(browser) {
     const problems = [];
@@ -455,6 +461,37 @@ const CHECKS = {
     if (Math.abs(r.width - 0.88) > 0.01 || (r.clip && r.clip !== "none")) problems.push(`stelle: larghezza ${r.width.toFixed(2)}, clip ${r.clip}`);
     if (Math.abs(r.pinY - 228) > 0.5 || r.pinOpacity < 0.99) problems.push(`segnaposto y=${r.pinY} opacità ${r.pinOpacity}`);
     if (r.anims) problems.push(`${r.anims} animazioni attive con movimento ridotto`);
+    await context.close();
+    return problems;
+  },
+  async "letter-write"(browser) {
+    const problems = [];
+    const { context, page, errors } = await open(browser, { width: 1440, reducedMotion: "no-preference" });
+    await page.goto(BASE, { waitUntil: "networkidle" });
+    await sleep(2200);
+    const words = () => page.$$eval(".letter-body .letter-word", (els) => els.map((e) => getComputedStyle(e).color));
+    const before = await words();
+    if (!before.length) problems.push("le parole della lettera non sono divise (.letter-word assente)");
+    else if (before.every((c) => c === "rgb(14, 58, 91)")) problems.push("prima dello scorrimento le parole sono già tutte blu");
+    await page.evaluate(() => window.scrollTo(0, document.querySelector('[data-qa="letter"]').getBoundingClientRect().bottom + window.scrollY));
+    await sleep(1500);
+    const after = await words();
+    const grey = after.filter((c) => c !== "rgb(14, 58, 91)").length;
+    if (grey) problems.push(`${grey} parole ancora grigie dopo aver letto la lettera`);
+    const underline = await page.$eval(".sign-underline", (p) => getComputedStyle(p).strokeDasharray);
+    if (underline && underline !== "none" && parseFloat(underline) < p0len(underline)) problems.push(`sottolineatura della firma non disegnata (${underline})`);
+    if (errors.length) problems.push(`errori in console: ${errors.join(" | ")}`);
+    await context.close();
+    return problems;
+  },
+
+  async "letter-static"(browser) {
+    const problems = [];
+    const { context, page } = await open(browser, { width: 1440, reducedMotion: "reduce" });
+    await page.goto(BASE, { waitUntil: "networkidle" });
+    const colors = await page.$$eval(".letter-body p", (els) => els.map((e) => getComputedStyle(e).color));
+    if (colors.some((c) => c !== "rgb(14, 58, 91)")) problems.push(`movimento ridotto: testo della lettera non blu (${colors.join(", ")})`);
+    if (await page.$(".letter-word")) problems.push("movimento ridotto: la lettera è stata divisa in parole");
     await context.close();
     return problems;
   },
