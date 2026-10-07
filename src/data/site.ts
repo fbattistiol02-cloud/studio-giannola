@@ -52,7 +52,9 @@ export const CLINIC = {
     src: "/foto/studio.webp",
     srcMobile: "/foto/studio-800.webp",
     width: 1600,
-    height: 2000,
+    height: 1067,
+    /** Inquadratura dentro l'arco: la poltrona al centro. */
+    position: "58% 50%",
     alt: "Uno studio dentistico luminoso (foto di esempio)",
     stock: true,
   },

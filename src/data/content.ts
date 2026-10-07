@@ -34,6 +34,7 @@ export const CONTENT = {
       "Il mio modo di lavorare è semplice da spiegare: le dico con chiarezza cosa serve, e solo quello.",
       "E se ha paura, me lo dica. Andiamo con calma, un passo alla volta.",
     ],
+    pull: "Le dico con chiarezza cosa serve, e solo quello.",
     sign: CLINIC.doctor,
   },
   reviews: {

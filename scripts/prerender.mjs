@@ -29,5 +29,7 @@ const html = template
   .replace("<!--app-head-->", preload)
   .replace("<!--app-html-->", render());
 fs.writeFileSync(file, html);
+// Pagina unica: anche gli indirizzi sbagliati mostrano la landing (e serve.mjs non si blocca).
+fs.writeFileSync(path.join(dist, "404.html"), html);
 fs.rmSync(path.join(root, "dist-ssr"), { recursive: true, force: true });
 console.log(`prerender: dist/index.html (${(html.length / 1024).toFixed(1)} KB)`);
