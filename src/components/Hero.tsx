@@ -1,4 +1,7 @@
+import { useEffect, useRef } from "react";
 import { CLINIC } from "@/data/site";
+import { motionAllowed } from "@/lib/motion";
+import { heroParallax, playDoorIntro } from "@/motion/door";
 import { CONTENT } from "@/data/content";
 import { AccessIcon, ArrowDownIcon, CalendarIcon, PhoneIcon, PinIcon } from "./icons";
 
@@ -9,8 +12,21 @@ export const ARCH_PATH = "M0 500V200A200 200 0 0 1 400 200V500";
 export function Hero() {
   const { hero } = CONTENT;
   const photo = CLINIC.photo;
+  const ref = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const hero = ref.current;
+    if (!hero || !motionAllowed()) return;
+    const intro = document.documentElement.classList.contains("intro") ? playDoorIntro(hero) : null;
+    const stopParallax = heroParallax(hero);
+    return () => {
+      intro?.kill();
+      stopParallax();
+    };
+  }, []);
+
   return (
-    <section className="hero" id="top" data-qa="hero" aria-labelledby="hero-title">
+    <section className="hero" id="top" data-qa="hero" aria-labelledby="hero-title" ref={ref}>
       <div className="container grid grid-12 hero-grid">
         <div className="hero-text">
           <p className="eyebrow">{hero.kicker}</p>

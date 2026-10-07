@@ -172,7 +172,7 @@ ol {
 .accent {
   font-style: italic;
   color: var(--verona);
-  font-variation-settings: "opsz" 144, "wght" 560, "SOFT" 100, "WONK" 1;
+  font-variation-settings: "opsz" 144, "wght" var(--wght, 560), "SOFT" var(--soft, 100), "WONK" var(--wonk, 1);
 }
 .kicker {
   display: block;
@@ -438,11 +438,18 @@ ol {
   max-width: 30rem;
   justify-self: end;
 }
+/* sul telefono l'arco va sopra il titolo: la porta che si apre si vede subito */
 @media (max-width: 59.99rem) {
   .hero-arch {
-    max-width: 26rem;
+    order: -1;
+    width: min(62vw, 17rem);
     justify-self: center;
-    margin-top: 1rem;
+  }
+  .hero {
+    padding-top: 1.75rem;
+  }
+  .hero-grid {
+    gap: 1.75rem;
   }
 }
 
@@ -469,8 +476,9 @@ ol {
   height: 100%;
   overflow: visible;
   pointer-events: none;
+  /* più grande della foto, allineato in basso: incornicia l'arco senza scendere sotto */
   transform: scale(1.055);
-  transform-origin: 50% 55%;
+  transform-origin: 50% 100%;
   color: var(--verona);
 }
 .arch-outline path {
@@ -1091,4 +1099,24 @@ html.motion [data-reveal] {
   transition:
     opacity 0.6s var(--ease-out) var(--delay, 0ms),
     transform 0.6s var(--ease-out) var(--delay, 0ms);
+}
+
+/* ---- la porta che si apre: stati iniziali SOLO durante html.intro -------- */
+html.intro .arch-outline,
+html.intro .hero-title {
+  visibility: hidden;
+}
+html.intro .arch img {
+  transform: scale(1.12);
+}
+html.intro .hero-lead,
+html.intro .hero-actions,
+html.intro .hero-points li {
+  opacity: 0;
+  transform: translateY(16px);
+}
+.hero-arch picture {
+  display: block;
+  height: 100%;
+  transform-origin: 50% 40%;
 }

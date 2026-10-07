@@ -185,6 +185,112 @@ const CHECKS = {
     await context.close();
     return problems;
   },
+  async "intro-timing"(browser) {
+    const problems = [];
+    const { context, page, errors } = await open(browser, { reducedMotion: "no-preference" });
+    await page.goto(BASE, { waitUntil: "commit" });
+    await sleep(300);
+    const at300 = await page.evaluate(() => {
+      const leaf = document.querySelector('[data-qa="door-leaf"]');
+      return leaf ? getComputedStyle(leaf).visibility : "assente";
+    });
+    if (at300 !== "visible") problems.push(`a 300 ms le ante non sono visibili (${at300})`);
+    await sleep(1700);
+    const at2000 = await page.evaluate(() => {
+      const leaves = [...document.querySelectorAll('[data-qa="door-leaf"]')];
+      const fig = document.querySelector('[data-qa="hero-photo"]').getBoundingClientRect();
+      const out = leaves.every((l) => {
+        const r = l.getBoundingClientRect();
+        return getComputedStyle(l).visibility === "hidden" || r.right <= fig.left + 1 || r.left >= fig.right - 1;
+      });
+      return {
+        intro: document.documentElement.classList.contains("intro"),
+        leavesOut: out,
+        h1: Number(getComputedStyle(document.querySelector("h1")).opacity),
+        h1Vis: getComputedStyle(document.querySelector("h1")).visibility,
+      };
+    });
+    if (at2000.intro) problems.push("a 2000 ms <html> ha ancora la classe intro");
+    if (!at2000.leavesOut) problems.push("a 2000 ms le ante coprono ancora la foto");
+    if (at2000.h1 < 0.99 || at2000.h1Vis !== "visible") problems.push(`a 2000 ms h1 non visibile (${at2000.h1}, ${at2000.h1Vis})`);
+    if (errors.length) problems.push(`errori in console: ${errors.join(" | ")}`);
+    await context.close();
+    return problems;
+  },
+
+  async "intro-skip"(browser) {
+    const problems = [];
+    const { context, page } = await open(browser, { reducedMotion: "no-preference" });
+    await page.goto(BASE, { waitUntil: "commit" });
+    await sleep(300);
+    await page.mouse.move(180, 400);
+    await page.mouse.wheel(0, 600);
+    await sleep(250);
+    const r = await page.evaluate(() => ({
+      intro: document.documentElement.classList.contains("intro"),
+      y: window.scrollY,
+    }));
+    if (r.intro) problems.push("250 ms dopo lo scorrimento l'apertura non è finita");
+    if (!(r.y > 0)) problems.push("lo scorrimento durante l'apertura è bloccato (scrollY = 0)");
+    await context.close();
+    return problems;
+  },
+
+  async "intro-once"(browser) {
+    const problems = [];
+    const { context, page } = await open(browser, { reducedMotion: "no-preference" });
+    await page.goto(BASE, { waitUntil: "networkidle" });
+    await sleep(2500);
+    await page.goto(BASE, { waitUntil: "commit" });
+    await sleep(100);
+    const r = await page.evaluate(() => ({
+      intro: document.documentElement.classList.contains("intro"),
+      h1: document.querySelector("h1") ? Number(getComputedStyle(document.querySelector("h1")).opacity) : 0,
+      vis: document.querySelector("h1") ? getComputedStyle(document.querySelector("h1")).visibility : "assente",
+    }));
+    if (r.intro) problems.push("alla seconda visita parte di nuovo l'apertura");
+    if (r.h1 < 0.99 || r.vis !== "visible") problems.push("alla seconda visita il titolo non è subito visibile");
+    await context.close();
+    return problems;
+  },
+
+  async "intro-js-fail"(browser) {
+    const problems = [];
+    const { context, page } = await open(browser, {
+      reducedMotion: "no-preference",
+      route: { pattern: "**/assets/*.js", handler: (r) => r.abort() },
+    });
+    await page.goto(BASE, { waitUntil: "commit" });
+    await sleep(3200);
+    const r = await page.evaluate(() => ({
+      intro: document.documentElement.classList.contains("intro"),
+      h1: Number(getComputedStyle(document.querySelector("h1")).opacity),
+      vis: getComputedStyle(document.querySelector("h1")).visibility,
+    }));
+    if (r.intro) problems.push("senza JS dopo 3,2 s <html> ha ancora intro");
+    if (r.h1 < 0.99 || r.vis !== "visible") problems.push("senza JS dopo 3,2 s il titolo non è visibile");
+    await context.close();
+    return problems;
+  },
+
+  async cls(browser) {
+    const problems = [];
+    const { context, page } = await open(browser, {
+      reducedMotion: "no-preference",
+      init: () => {
+        window.__cls = 0;
+        new PerformanceObserver((list) => {
+          for (const e of list.getEntries()) if (!e.hadRecentInput) window.__cls += e.value;
+        }).observe({ type: "layout-shift", buffered: true });
+      },
+    });
+    await page.goto(BASE, { waitUntil: "commit" });
+    await sleep(3000);
+    const cls = await page.evaluate(() => window.__cls);
+    if (cls > 0) problems.push(`CLS = ${cls.toFixed(4)} (atteso 0)`);
+    await context.close();
+    return problems;
+  },
 };
 
 // ---- esecuzione --------------------------------------------------------------
