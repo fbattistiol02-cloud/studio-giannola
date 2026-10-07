@@ -86,3 +86,26 @@ export function curesDraw(section: HTMLElement): () => void {
   icons.forEach((icon) => io.observe(icon));
   return () => io.disconnect();
 }
+
+/** Il foglio del preventivo si apre (metà superiore che ruota) e le righe si compilano. */
+export function estimateOpen(estimate: HTMLElement): () => void {
+  if (!motionAllowed()) return () => undefined;
+  const top = estimate.querySelector<HTMLElement>(".sheet-top");
+  const lines = estimate.querySelectorAll<HTMLElement>(".sheet-line");
+  if (!top) return () => undefined;
+  gsap.set(top, { rotateX: -180 });
+  gsap.set(lines, { scaleX: 0 });
+  const io = new IntersectionObserver(
+    ([e]) => {
+      if (!e.isIntersecting) return;
+      io.disconnect();
+      gsap
+        .timeline()
+        .to(top, { rotateX: 0, duration: 0.9, ease: "power3.inOut", clearProps: "transform" })
+        .to(lines, { scaleX: 1, duration: 0.5, stagger: 0.15, ease: "expo.out", clearProps: "transform" }, 0.6);
+    },
+    { threshold: 0.5 },
+  );
+  io.observe(estimate);
+  return () => io.disconnect();
+}

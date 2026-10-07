@@ -532,6 +532,38 @@ const CHECKS = {
     await context.close();
     return problems;
   },
+  async "estimate-open"(browser) {
+    const problems = [];
+    const { context, page, errors } = await open(browser, { width: 1440, reducedMotion: "no-preference" });
+    await page.goto(BASE, { waitUntil: "networkidle" });
+    await sleep(2200);
+    const state = () =>
+      page.evaluate(() => {
+        const top = new DOMMatrix(getComputedStyle(document.querySelector(".sheet-top")).transform);
+        const lines = [...document.querySelectorAll(".sheet-line")].map((l) => new DOMMatrix(getComputedStyle(l).transform).a);
+        return { flat: top.isIdentity, lines };
+      });
+    const before = await state();
+    if (before.flat) problems.push("prima di arrivare al preventivo il foglio è già aperto");
+    await page.evaluate(() => document.querySelector('[data-qa="estimate"]').scrollIntoView({ block: "center" }));
+    await sleep(2500);
+    const after = await state();
+    if (!after.flat) problems.push("il foglio del preventivo non si è aperto");
+    if (after.lines.some((a) => Math.abs(a - 1) > 0.01)) problems.push("le righe del preventivo non sono compilate");
+    if (errors.length) problems.push(`errori in console: ${errors.join(" | ")}`);
+    await context.close();
+    return problems;
+  },
+
+  async "estimate-static"(browser) {
+    const problems = [];
+    const { context, page } = await open(browser, { width: 1440, reducedMotion: "reduce" });
+    await page.goto(BASE, { waitUntil: "networkidle" });
+    const flat = await page.$eval(".sheet-top", (el) => new DOMMatrix(getComputedStyle(el).transform).isIdentity);
+    if (!flat) problems.push("movimento ridotto: il foglio del preventivo è chiuso");
+    await context.close();
+    return problems;
+  },
 };
 
 // ---- esecuzione --------------------------------------------------------------

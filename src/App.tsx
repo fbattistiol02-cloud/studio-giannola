@@ -11,7 +11,7 @@ import { initMotion } from "./lib/gsap";
 import { CLINIC } from "./data/site";
 import { countRating, headerPill, highlightQuotes, mapEntrance, revealBlocks } from "./motion/small";
 import { drawVein } from "./motion/vein";
-import { curesDraw, letterWrite } from "./motion/extras";
+import { curesDraw, estimateOpen, letterWrite } from "./motion/extras";
 
 export default function App() {
   useEffect(() => {
@@ -26,6 +26,7 @@ export default function App() {
       mapEntrance(q<SVGSVGElement>('[data-qa="map"]')),
       letterWrite(q<HTMLElement>('[data-qa="letter"]')),
       curesDraw(q<HTMLElement>('[data-qa="cures"]')),
+      estimateOpen(q<HTMLElement>('[data-qa="estimate"]')),
     ];
     return () => {
       stops.forEach((s) => s());
